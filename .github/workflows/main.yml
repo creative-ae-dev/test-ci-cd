@@ -35,5 +35,9 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
             cd /var/www/launchpad-cms.ouinex.com
-            bash -lc "yarn install && yarn run build || echo 'No build step' && pm2 reload ecosystem.config.js"
+            yarn install
+            yarn run build || echo "No build step"
+            pm2 reload ecosystem.config.js
