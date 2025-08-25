@@ -36,6 +36,6 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd /var/www/launchpad-cms.ouinex.com
-            npm ci
-            npm run build || echo "No build step"
+            yarn
+            yarn run build || echo "No build step"
             pm2 reload ecosystem.config.js
