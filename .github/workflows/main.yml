@@ -13,38 +13,29 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Debug secrets (FULL - UNSAFE)
-        run: |
-          echo "HOST_IP: ${{ secrets.HOST_IP }}"
-          echo "SERVER_USER: ${{ secrets.SERVER_USER }}"
-          echo "SSH_PRIVATE_KEY:"
-          echo "${{ secrets.SSH_PRIVATE_KEY }}"
-
-      - name: Setup SSH key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          # Avoid host key verification issues
-          echo "${{ secrets.HOST_IP }} ssh-rsa $(ssh-keyscan -t rsa -p 22 ${{ secrets.HOST_IP }} 2>/dev/null | awk '{print $3}')" >> ~/.ssh/known_hosts
-
-      - name: Deploy with rsync
-        run: |
-          rsync -avz \
-            --exclude='.git' \
-            --exclude='.github' \
-            --exclude='node_modules' \
-            --exclude='README.md' \
-            --exclude='LICENSE' \
-            --exclude='.gitignore' \
-            ./ \
-            ${{ secrets.SERVER_USER }}@${{ secrets.HOST_IP }}:/var/www/launchpad-cms.ouinex.com
-
+      - name: Copy repo to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.HOST_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "."
+          target: "/var/www/launchpad-cms.ouinex.com"
+          exclude: |
+            .git
+            .github
+            node_modules
+            README.md
+            LICENSE
+            .gitignore
       - name: Install deps, build, restart pm2
-        run: |
-          ssh -i ~/.ssh/id_rsa ${{ secrets.SERVER_USER }}@${{ secrets.HOST_IP }} << 'EOF'
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.HOST_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
             cd /var/www/launchpad-cms.ouinex.com
             npm ci
             npm run build || echo "No build step"
             pm2 reload ecosystem.config.js
-          EOF
